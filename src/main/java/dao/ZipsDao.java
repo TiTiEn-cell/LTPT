@@ -227,6 +227,51 @@ public class ZipsDao {
 
 	    return result;
 	}
+	
+	
+	public boolean addZip(Zips zips) {
+		AtomicBoolean result = new AtomicBoolean(false);
+
+		CountDownLatch latch = new CountDownLatch(1);
+		
+		Publisher<InsertOneResult> pub = zipCollection.insertOne(zips);
+		
+		Subscriber<InsertOneResult> sub = new Subscriber<InsertOneResult>() {
+
+			@Override
+			public void onSubscribe(Subscription s) {
+				s.request(1);
+			}
+
+			@Override
+			public void onNext(InsertOneResult t) {
+				System.out.println("address inserted: " + t.getInsertedId());
+				
+				result.set(t.getInsertedId() != null ? true : false);
+			}
+
+			@Override
+			public void onError(Throwable t) {
+				t.printStackTrace();
+			}
+
+			@Override
+			public void onComplete() {
+				System.out.println("Completed");
+				latch.countDown();
+			}
+
+		};
+
+		pub.subscribe(sub);
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		return result.get();
+	}
 
 //	public void updateCityByState(String state, String newCity) {
 //	    CountDownLatch latch = new CountDownLatch(1);
